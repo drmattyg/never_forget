@@ -1,6 +1,22 @@
+import random
 from PIL import Image
+from lib import LCD_1inch28
+import os
+import time
+# Raspberry Pi pin configuration:
+RST = 27
+DC = 25
+BL = 18
+bus = 0
+device = 0
+
+IMG_DIR = '/usr/pi/img'
 
 FADE_STEPS = 20
+IMAGE_TIME = 20 # sec
+FADE_TIME = 5 # sec
+FADE_SLEEP = FADE_TIME/FADE_STEPS
+
 class Fader:
     def __init__(self, im1, im2, fade_steps):
         self.im1 = im1
@@ -25,3 +41,30 @@ class Fader:
     @staticmethod
     def from_filenames(fn1, fn2, fade_steps=FADE_STEPS):
         return Fader(Image.open(fn1), Image.open(fn2), fade_steps=fade_steps)
+
+if __name__ == '__main__':
+
+    #disp = LCD_1inch28.LCD_1inch28(spi=SPI.SpiDev(bus, device),spi_freq=10000000,rst=RST,dc=DC,bl=BL)
+    disp = LCD_1inch28.LCD_1inch28()
+    # Initialize library.
+    disp.Init()
+    # Clear display.
+    disp.clear()
+
+    imgs = os.listdir(IMG_DIR)
+    random.shuffle(imgs)
+    while True:
+        for n in range(len(imgs) - 1):
+            fader = Fader.from_filenames(imgs[n], imgs[n+1], FADE_STEPS)
+            disp.ShowImage(fader.im1)
+            time.sleep(IMAGE_TIME)
+            for im in fader:
+                time.sleep(FADE_SLEEP)
+                disp.ShowImage(im)
+        fader = Fader.from_filenames(imgs[-1], imgs[0])
+        for im in fader:
+            time.sleep(FADE_SLEEP)
+            disp.ShowImage(im)
+
+
+
